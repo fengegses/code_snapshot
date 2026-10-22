@@ -1,0 +1,198 @@
+{
+  "schema_version": 2,
+  "project": "demo_project",
+  "root": "/home/user/Doubao/chats/38448650319553538/demo_project",
+  "generated_at": "2026-10-23T00:27:15+08:00",
+  "stats": {
+    "dirs": 16,
+    "files": 9,
+    "links": 2,
+    "total_bytes": 265,
+    "skipped": 0,
+    "no_expand_folders": 4,
+    "elapsed_sec": 0.065
+  },
+  "skipped": [],
+  "tree": {
+    "name": "demo_project",
+    "kind": "dir",
+    "mtime": "2026-10-23T00:27:08+08:00",
+    "children": [
+      {
+        "name": ".git",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:06:22+08:00",
+        "children": [
+          {
+            "name": "config",
+            "kind": "file",
+            "size": 7,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "objects",
+            "kind": "dir",
+            "mtime": "2026-10-23T00:06:22+08:00",
+            "children": []
+          }
+        ]
+      },
+      {
+        "name": "README.md",
+        "kind": "file",
+        "size": 12,
+        "mtime": "2026-10-23T00:06:22+08:00"
+      },
+      {
+        "name": "__pycache__",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:06:22+08:00",
+        "children": [
+          {
+            "name": "cache.pyc",
+            "kind": "file",
+            "size": 3,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          }
+        ]
+      },
+      {
+        "name": "deep",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:06:22+08:00",
+        "children": [
+          {
+            "name": "a",
+            "kind": "dir",
+            "mtime": "2026-10-23T00:06:22+08:00",
+            "children": [
+              {
+                "name": "b",
+                "kind": "dir",
+                "mtime": "2026-10-23T00:06:22+08:00",
+                "children": [
+                  {
+                    "name": "c",
+                    "kind": "dir",
+                    "mtime": "2026-10-23T00:06:22+08:00",
+                    "children": [
+                      {
+                        "name": "d",
+                        "kind": "dir",
+                        "mtime": "2026-10-23T00:06:22+08:00",
+                        "children": [
+                          {
+                            "name": "e",
+                            "kind": "dir",
+                            "mtime": "2026-10-23T00:06:22+08:00",
+                            "children": [
+                              {
+                                "name": "leaf.txt",
+                                "kind": "file",
+                                "size": 10,
+                                "mtime": "2026-10-23T00:06:22+08:00"
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "name": "no_extension_file",
+        "kind": "file",
+        "size": 13,
+        "mtime": "2026-10-23T00:06:22+08:00"
+      },
+      {
+        "name": "node_modules",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:06:22+08:00",
+        "children": [
+          {
+            "name": "pkg",
+            "kind": "dir",
+            "expanded": false,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          }
+        ]
+      },
+      {
+        "name": "src",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:26:10+08:00",
+        "children": [
+          {
+            "name": "broken_link",
+            "kind": "link",
+            "target": "missing_target",
+            "size": 14,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "main.py",
+            "kind": "file",
+            "size": 12,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "readme_link",
+            "kind": "link",
+            "target": "../README.md",
+            "size": 12,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "utils",
+            "kind": "dir",
+            "expanded": false,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "vendor",
+            "kind": "dir",
+            "expanded": false,
+            "mtime": "2026-10-23T00:26:10+08:00"
+          },
+          {
+            "name": "vendor.zip",
+            "kind": "file",
+            "size": 167,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          },
+          {
+            "name": "数据文件.txt",
+            "kind": "file",
+            "size": 22,
+            "mtime": "2026-10-23T00:06:22+08:00"
+          }
+        ]
+      },
+      {
+        "name": "third_party",
+        "kind": "dir",
+        "mtime": "2026-10-23T00:26:10+08:00",
+        "children": [
+          {
+            "name": "README.md",
+            "kind": "file",
+            "size": 19,
+            "mtime": "2026-10-23T00:26:10+08:00"
+          },
+          {
+            "name": "vendor",
+            "kind": "dir",
+            "expanded": false,
+            "mtime": "2026-10-23T00:26:10+08:00"
+          }
+        ]
+      }
+    ]
+  }
+}
