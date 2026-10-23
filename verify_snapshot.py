@@ -81,8 +81,9 @@ def find_node(tree, rel_path_parts):
 
 
 def main():
-    if not os.path.exists(JSON_OUT):
-        sys.exit("未找到输出文件，请先运行: python3 code_snapshot.py demo_project")
+    # 先重新生成默认（全量）快照，保证第一阶段对照与磁盘一致、与历史状态无关
+    subprocess.run([sys.executable, os.path.join(BASE, "code_snapshot.py"), ROOT],
+                   cwd=BASE, check=True, capture_output=True)
 
     with open(JSON_OUT, encoding="utf-8") as f:
         doc = json.load(f)

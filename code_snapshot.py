@@ -347,6 +347,210 @@ def dump_md(root_node, meta, stats, skipped, path):
         f.write(content)
 
 
+# ---------------------------------------------------------------------------
+# 生成后自动验证：每次生成完毕立即校验输出正确性，失败则退出非零
+# ---------------------------------------------------------------------------
+
+def _tree_set(root_node):
+    """把内存树拍平成 (kind, rel_path) 集合（含根节点；不深入 expanded=false 目录）。"""
+    s = {("dir", root_node["name"])}
+    stack = [(c, c["name"]) for c in root_node.get("children", [])]
+    while stack:
+        n, rel = stack.pop()
+        s.add((n["kind"], rel))
+        if n["kind"] == "dir" and n.get("expanded") is not False:
+            stack.extend((c, os.path.join(rel, c["name"]))
+                         for c in n.get("children", []))
+    return s
+
+
+def _no_expand_rels(root_node):
+    """收集树中 expanded=false 目录的相对路径（相对根目录）。"""
+    out = set()
+    stack = [(c, c["name"]) for c in root_node.get("children", [])]
+    while stack:
+        n, rel = stack.pop()
+        if n["kind"] == "dir":
+            if n.get("expanded") is False:
+                out.add(rel)
+            else:
+                stack.extend((c, os.path.join(rel, c["name"]))
+                             for c in n.get("children", []))
+    return out
+
+
+def _disk_set(root_abs, output_paths, skip_rels):
+    """用独立实现（显式栈 + scandir，不构建树）遍历磁盘，
+    产出 (kind, rel_path) 集合（含根节点），与 _tree_set 交叉核对。
+    skip_rels 中的目录不深入（与不展开语义一致）。"""
+    out_set = set(output_paths)
+    root_name = fsname(os.path.basename(root_abs)) or "/"
+    s = {("dir", root_name)}
+    stack = [root_abs]
+    while stack:
+        path = stack.pop()
+        try:
+            with os.scandir(path) as it:
+                entries = list(it)
+        except OSError:
+            continue
+        for e in entries:
+            ap = os.path.abspath(e.path)
+            if ap in out_set:
+                continue
+            r = os.path.relpath(ap, root_abs)
+            if e.is_dir(follow_symlinks=False):
+                s.add(("dir", r))
+                if r in skip_rels:
+                    continue  # 不展开
+                stack.append(ap)
+            elif e.is_symlink():
+                s.add(("link", r))
+            else:
+                s.add(("file", r))
+    return s
+
+
+def verify_output(root_abs, root_node, stats, skipped, output_paths):
+    """生成后自动验证，返回 True/False。
+
+    检查项：① JSON 回读与内存树/统计一致；② 节点结构合法
+    （kind 枚举、未展开目录无 children、展开目录有 children、
+    file 有 size、link 有 target）；③ 统计与树一致；④ 输出文件
+    自排除；⑤ 独立遍历磁盘与树交叉核对（含不展开目录语义）；
+    ⑥ MD 文件头完整。失败时打印明细并返回 False。
+    """
+    results = []
+
+    def add(name, ok, detail=""):
+        results.append((name, ok, detail))
+
+    # ① JSON 回读一致性
+    for p in output_paths:
+        if p.lower().endswith(".json"):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    doc = json.load(f)
+                add(f"JSON 回读一致: {fsname(os.path.basename(p))}",
+                    doc.get("tree") == root_node and doc.get("stats") == stats)
+            except Exception as err:
+                add(f"JSON 回读一致: {fsname(os.path.basename(p))}", False, str(err))
+
+    # ② 节点结构合法
+    schema_ok = True
+    schema_detail = ""
+    if root_node.get("expanded") is False and root_node.get("children"):
+        schema_ok = False
+        schema_detail = "未展开的根目录不应含 children"
+    stack = [(c, 1) for c in root_node.get("children", [])]
+    while stack and schema_ok:
+        n, depth = stack.pop()
+        if n["kind"] not in ("file", "dir", "link"):
+            schema_ok = False
+            schema_detail = f"非法 kind={n.get('kind')!r}: {n.get('name')!r}"
+            break
+        if n["kind"] == "dir":
+            if n.get("expanded") is False:
+                if n.get("children"):
+                    schema_ok = False
+                    schema_detail = f"未展开目录不应含 children: {n.get('name')!r}"
+                    break
+            elif "children" not in n:
+                schema_ok = False
+                schema_detail = f"展开目录缺 children: {n.get('name')!r}"
+                break
+            else:
+                stack.extend((c, depth + 1) for c in n["children"])
+        elif n["kind"] == "file":
+            if not isinstance(n.get("size"), int):
+                schema_ok = False
+                schema_detail = f"file 缺 size: {n.get('name')!r}"
+                break
+        else:  # link
+            if not isinstance(n.get("target"), str):
+                schema_ok = False
+                schema_detail = f"link 缺 target: {n.get('name')!r}"
+                break
+    add("节点结构合法", schema_ok, schema_detail)
+
+    # ③ 统计与树一致
+    d0 = f0 = l0 = ne0 = b0 = 0
+    stack = list(root_node.get("children", []))
+    while stack:
+        n = stack.pop()
+        if n["kind"] == "dir":
+            d0 += 1
+            if n.get("expanded") is False:
+                ne0 += 1
+            else:
+                stack.extend(n.get("children", []))
+        elif n["kind"] == "file":
+            f0 += 1
+            b0 += n.get("size", 0)
+        else:
+            l0 += 1
+    if root_node.get("expanded") is False:
+        d0 = f0 = l0 = b0 = 0
+        ne0 = 1
+    stats_ok = (stats["dirs"] == d0 and stats["files"] == f0
+                and stats["links"] == l0
+                and stats["no_expand_folders"] == ne0
+                and stats["total_bytes"] == b0
+                and stats["skipped"] == len(skipped))
+    add("统计与树一致", stats_ok,
+        f"期望 dirs={d0} files={f0} links={l0} nexp={ne0} bytes={b0} "
+        f"≠ stats={stats}")
+
+    # ④ 输出文件自排除
+    self_ok = True
+    self_detail = ""
+    tree_s = _tree_set(root_node)
+    for p in output_paths:
+        try:
+            rel = os.path.relpath(p, root_abs)
+        except ValueError:
+            continue  # 不同盘符等，不在根内
+        if (os.path.isfile(p) and os.path.normpath(rel) != "."
+                and ("file", rel) in tree_s):
+            self_ok = False
+            self_detail = f"输出文件被扫进树: {p}"
+            break
+    add("输出文件自排除", self_ok, self_detail)
+
+    # ⑤ 独立遍历与树交叉核对
+    if root_node.get("expanded") is False:
+        disk_s = {("dir", root_node["name"])}
+    else:
+        disk_s = _disk_set(root_abs, output_paths, _no_expand_rels(root_node))
+    add("独立遍历与树一致", tree_s == disk_s,
+        f"树 {len(tree_s)} 项 vs 磁盘 {len(disk_s)} 项，差异: {disk_s ^ tree_s}")
+
+    # ⑥ MD 文件头完整
+    md_ok = True
+    md_detail = ""
+    for p in output_paths:
+        if p.lower().endswith(".md"):
+            try:
+                with open(p, encoding="utf-8") as f:
+                    head = f.read(2048)
+                if not (head.startswith("# ") and "## 目录树" in head):
+                    md_ok = False
+                    md_detail = f"MD 文件头不完整: {p}"
+                    break
+            except OSError as err:
+                md_ok = False
+                md_detail = f"MD 读取失败: {err}"
+                break
+    add("MD 文件完整", md_ok, md_detail)
+
+    fails = [r for r in results if not r[1]]
+    for name, ok, detail in fails:
+        print(f"[验证失败] {name}" + (f"  -> {detail}" if detail else ""))
+    print(f"验证       : {len(results) - len(fails)}/{len(results)} 通过"
+          + ("（自动）" if not fails else f"，{len(fails)} 项失败"))
+    return not fails
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(
         description="工程代码结构快照工具：把目录层级与文件名（含后缀）保存为结构化文件")
@@ -361,6 +565,8 @@ def main(argv=None):
                              "两种写法：① 文件夹名（重名时列出路径与编号交互选择，"
                              "可多选/全选）；② 相对“处理根目录”的路径（如 src/utils，"
                              "系统绝对路径与越出根目录的路径会被拒绝）。")
+    parser.add_argument("--no-verify", action="store_true",
+                        help="生成后跳过自动验证（默认每次生成后自动验证）")
     args = parser.parse_args(argv)
 
     root_abs = os.path.abspath(args.root_dir)
@@ -409,6 +615,11 @@ def main(argv=None):
         print(f"[警告] {w}")
     for p in written:
         print(f"已写出     : {p}")
+
+    # 生成后自动验证
+    if not args.no_verify:
+        if not verify_output(root_abs, root_node, stats, skipped, outputs):
+            sys.exit(1)
 
 
 if __name__ == "__main__":

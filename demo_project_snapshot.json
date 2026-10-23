@@ -2,7 +2,7 @@
   "schema_version": 2,
   "project": "demo_project",
   "root": "/home/user/Doubao/chats/38448650319553538/demo_project",
-  "generated_at": "2026-10-23T00:27:15+08:00",
+  "generated_at": "2026-10-23T13:36:30+08:00",
   "stats": {
     "dirs": 16,
     "files": 9,
@@ -10,13 +10,13 @@
     "total_bytes": 265,
     "skipped": 0,
     "no_expand_folders": 4,
-    "elapsed_sec": 0.065
+    "elapsed_sec": 0.032
   },
   "skipped": [],
   "tree": {
     "name": "demo_project",
     "kind": "dir",
-    "mtime": "2026-10-23T00:27:08+08:00",
+    "mtime": "2026-10-23T13:36:21+08:00",
     "children": [
       {
         "name": ".git",
